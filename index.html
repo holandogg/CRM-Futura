@@ -129,6 +129,9 @@
 
   <div class="toolbar">
     <input type="text" id="search" placeholder="&#128269; Buscar por &oacute;rg&atilde;o, setor, cidade, e-mail..." oninput="render()">
+    <select id="filter-contato" onchange="render()" style="flex-shrink:0;width:auto;padding:9px 12px;background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;color:var(--text-dim);font-size:13px;">
+      <option value="">Todos os contatos</option>
+    </select>
     <div class="filter-tabs">
       <button class="ftab active" data-f="todos" onclick="setFilter('todos',this)">Todos</button>
       <button class="ftab" data-f="Prospec&ccedil;&atilde;o" onclick="setFilter('Prospec&ccedil;&atilde;o',this)">Prospec&ccedil;&atilde;o</button>
@@ -281,10 +284,22 @@
   function render(){
     var tb=document.getElementById('tbody'), empty=document.getElementById('empty');
     var q=document.getElementById('search').value.toLowerCase().trim();
+    var contatoSel=document.getElementById('filter-contato');
+    var contatoFiltro=contatoSel ? contatoSel.value : '';
+
+    // atualiza opções do select com os nomes existentes
+    var nomes=contacts.map(function(c){return (c.nome||'').trim();}).filter(function(n){return n!=='';});
+    var nomesUnicos=[]; nomes.forEach(function(n){ if(nomesUnicos.indexOf(n)<0) nomesUnicos.push(n); }); nomesUnicos.sort();
+    if(contatoSel){
+      contatoSel.innerHTML='<option value="">Todos os contatos</option>'+
+        nomesUnicos.map(function(n){return '<option value="'+n+'"'+(contatoFiltro===n?' selected':'')+'>'+n+'</option>';}).join('');
+    }
+
     tb.innerHTML='';
     var list=contacts.filter(function(c){
       if(filter==='pend' && c.done) return false;
       if(filter!=='todos' && filter!=='pend' && c.lista!==filter) return false;
+      if(contatoFiltro && (c.nome||'').trim()!==contatoFiltro) return false;
       if(q){ var hay=(c.orgao+' '+c.setor+' '+c.cidade+' '+c.email+' '+c.tipo+' '+(c.nome||'')).toLowerCase(); if(hay.indexOf(q)<0) return false; }
       return true;
     });
