@@ -172,7 +172,7 @@
 
 <script>
   // ⚠️ Substitua pelos seus dados do Supabase (Project Settings → API)
-  var SUPABASE_URL = 'https://lagsekzshytikwxgnmxi.supabase.co/rest/v1/';
+  var SUPABASE_URL = 'https://lagsekzshytikwxgnmxi.supabase.co';
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhZ3Nla3pzaHl0aWt3eGdubXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTkwMzIsImV4cCI6MjA5NTk5NTAzMn0.gQcaH2zNokMXn6Dj2ixrKosPEZA0uRzMuDMz6pPl4Dc';
   var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -339,7 +339,22 @@
   document.addEventListener('keydown',function(e){
     if(e.key==='Enter' && ['f-orgao','f-setor','f-tel','f-email'].indexOf(document.activeElement.id)>=0) addContact();
   });
-  load();
+  load().then(function(){
+    if(!supabaseOk) return;
+    sb.channel('contacts-changes')
+      .on('postgres_changes', {event:'*', schema:'public', table:'contacts'}, function(payload){
+        if(payload.eventType==='INSERT'){
+          if(!contacts.find(function(c){return c.id===payload.new.id;})) contacts.push(payload.new);
+        } else if(payload.eventType==='UPDATE'){
+          var idx=contacts.findIndex(function(c){return c.id===payload.new.id;});
+          if(idx>=0) contacts[idx]=payload.new;
+        } else if(payload.eventType==='DELETE'){
+          contacts=contacts.filter(function(c){return c.id!==payload.old.id;});
+        }
+        render();
+      })
+      .subscribe();
+  });
 </script>
 </body>
 </html>
